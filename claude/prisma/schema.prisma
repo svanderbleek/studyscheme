@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  createdAt    DateTime      @default(now())
+  resources    Resource[]
+  gameSessions GameSession[]
+}
+
+model Resource {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  pairs     Pair[]
+  concepts  Concept[]
+
+  @@index([userId])
+}
+
+model Pair {
+  id         String   @id @default(cuid())
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  sentenceA  String
+  sentenceB  String
+  createdAt  DateTime @default(now())
+
+  @@index([resourceId])
+}
+
+model Concept {
+  id         String      @id @default(cuid())
+  resourceId String
+  resource   Resource    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  text       String
+  createdAt  DateTime    @default(now())
+  extensions Extension[]
+
+  @@index([resourceId])
+}
+
+model Extension {
+  id        String  @id @default(cuid())
+  conceptId String
+  concept   Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  text      String
+
+  @@index([conceptId])
+}
+
+enum GameType {
+  PAIRS
+  CONCEPTS
+}
+
+model GameSession {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameType     GameType
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  roundsPlayed Int       @default(0)
+  quit         Boolean   @default(false)
+
+  @@index([userId])
+}
