@@ -12,18 +12,14 @@ export async function getCurrentUser() {
 
 export async function createOrResumeUser(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
-  const emailRaw = String(formData.get("email") ?? "").trim();
-  const email = emailRaw.length > 0 ? emailRaw.toLowerCase() : null;
 
   if (!name) return;
 
-  const user = email
-    ? await prisma.user.upsert({
-        where: { email },
-        update: { name },
-        create: { name, email },
-      })
-    : await prisma.user.create({ data: { name } });
+  const user = await prisma.user.upsert({
+    where: { name },
+    update: {},
+    create: { name },
+  });
 
   const session = await getSession();
   session.userId = user.id;

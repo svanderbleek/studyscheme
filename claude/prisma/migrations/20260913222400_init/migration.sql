@@ -5,7 +5,6 @@ CREATE TYPE "GameType" AS ENUM ('PAIRS', 'CONCEPTS');
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "email" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
@@ -17,7 +16,6 @@ CREATE TABLE "Resource" (
     "userId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "contentHash" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -28,7 +26,6 @@ CREATE TABLE "Resource" (
 CREATE TABLE "Pair" (
     "id" TEXT NOT NULL,
     "resourceId" TEXT NOT NULL,
-    "sourceHash" TEXT NOT NULL,
     "sentenceA" TEXT NOT NULL,
     "sentenceB" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -40,7 +37,6 @@ CREATE TABLE "Pair" (
 CREATE TABLE "Concept" (
     "id" TEXT NOT NULL,
     "resourceId" TEXT NOT NULL,
-    "sourceHash" TEXT NOT NULL,
     "text" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -60,7 +56,6 @@ CREATE TABLE "Extension" (
 CREATE TABLE "GameSession" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "resourceId" TEXT NOT NULL,
     "gameType" "GameType" NOT NULL,
     "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "endedAt" TIMESTAMP(3),
@@ -71,25 +66,22 @@ CREATE TABLE "GameSession" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_name_key" ON "User"("name");
 
 -- CreateIndex
 CREATE INDEX "Resource_userId_idx" ON "Resource"("userId");
 
 -- CreateIndex
-CREATE INDEX "Pair_resourceId_sourceHash_idx" ON "Pair"("resourceId", "sourceHash");
+CREATE INDEX "Pair_resourceId_idx" ON "Pair"("resourceId");
 
 -- CreateIndex
-CREATE INDEX "Concept_resourceId_sourceHash_idx" ON "Concept"("resourceId", "sourceHash");
+CREATE INDEX "Concept_resourceId_idx" ON "Concept"("resourceId");
 
 -- CreateIndex
 CREATE INDEX "Extension_conceptId_idx" ON "Extension"("conceptId");
 
 -- CreateIndex
 CREATE INDEX "GameSession_userId_idx" ON "GameSession"("userId");
-
--- CreateIndex
-CREATE INDEX "GameSession_resourceId_idx" ON "GameSession"("resourceId");
 
 -- AddForeignKey
 ALTER TABLE "Resource" ADD CONSTRAINT "Resource_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -105,6 +97,3 @@ ALTER TABLE "Extension" ADD CONSTRAINT "Extension_conceptId_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "GameSession" ADD CONSTRAINT "GameSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GameSession" ADD CONSTRAINT "GameSession_resourceId_fkey" FOREIGN KEY ("resourceId") REFERENCES "Resource"("id") ON DELETE CASCADE ON UPDATE CASCADE;

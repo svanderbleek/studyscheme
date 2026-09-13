@@ -9,8 +9,8 @@ export default async function HomePage() {
         <div className="w-full max-w-sm">
           <h1 className="text-2xl font-semibold">Welcome to StudyScheme</h1>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Enter your name to get started. Add an email if you want to come
-            back to the same account later.
+            Enter a name to get started. Using the same name again brings you
+            back to that account.
           </p>
           <form action={createOrResumeUser} className="mt-6 flex flex-col gap-4">
             <label className="flex flex-col gap-1 text-sm">
@@ -19,14 +19,6 @@ export default async function HomePage() {
                 type="text"
                 name="name"
                 required
-                className="rounded border border-black/15 px-3 py-2 dark:border-white/20"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Email (optional)
-              <input
-                type="email"
-                name="email"
                 className="rounded border border-black/15 px-3 py-2 dark:border-white/20"
               />
             </label>

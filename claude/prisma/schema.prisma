@@ -12,25 +12,22 @@ datasource db {
 
 model User {
   id           String        @id @default(cuid())
-  name         String
-  email        String?       @unique
+  name         String        @unique
   createdAt    DateTime      @default(now())
   resources    Resource[]
   gameSessions GameSession[]
 }
 
 model Resource {
-  id           String        @id @default(cuid())
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name         String
-  content      String
-  contentHash  String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  pairs        Pair[]
-  concepts     Concept[]
-  gameSessions GameSession[]
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  pairs     Pair[]
+  concepts  Concept[]
 
   @@index([userId])
 }
@@ -39,24 +36,22 @@ model Pair {
   id         String   @id @default(cuid())
   resourceId String
   resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  sourceHash String
   sentenceA  String
   sentenceB  String
   createdAt  DateTime @default(now())
 
-  @@index([resourceId, sourceHash])
+  @@index([resourceId])
 }
 
 model Concept {
   id         String      @id @default(cuid())
   resourceId String
   resource   Resource    @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  sourceHash String
   text       String
   createdAt  DateTime    @default(now())
   extensions Extension[]
 
-  @@index([resourceId, sourceHash])
+  @@index([resourceId])
 }
 
 model Extension {
@@ -77,8 +72,6 @@ model GameSession {
   id           String    @id @default(cuid())
   userId       String
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resourceId   String
-  resource     Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   gameType     GameType
   startedAt    DateTime  @default(now())
   endedAt      DateTime?
@@ -86,5 +79,4 @@ model GameSession {
   quit         Boolean   @default(false)
 
   @@index([userId])
-  @@index([resourceId])
 }
