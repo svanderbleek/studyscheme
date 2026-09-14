@@ -10,6 +10,12 @@ export async function getCurrentUser() {
   return prisma.user.findUnique({ where: { id: session.userId } });
 }
 
+export async function requireUser() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/");
+  return user;
+}
+
 export async function createOrResumeUser(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
 
