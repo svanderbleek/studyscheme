@@ -3,7 +3,7 @@ import { anthropic, MODEL } from "@/lib/ai/client";
 import { PAIRS_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { PairsToolInputSchema, repairPairs, type RawPair } from "@/lib/ai/schemas";
 
-const MIN_PAIRS = 4;
+export const MIN_PAIRS = 2;
 
 const EXTRACT_PAIRS_TOOL: Anthropic.Tool = {
   name: "extract_pairs",
@@ -36,7 +36,7 @@ export async function extractPairs(content: string): Promise<RawPair[]> {
   const retryPairs = repairPairs(
     await requestPairs(
       content,
-      "Your previous attempt did not return enough valid pairs. Extract at least 4 pairs if the text supports it.",
+      `Your previous attempt did not return enough valid pairs. Extract at least ${MIN_PAIRS} pairs if the text supports it.`,
     ),
   );
   if (retryPairs.length >= MIN_PAIRS) return retryPairs;

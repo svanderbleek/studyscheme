@@ -1,11 +1,9 @@
 import { prisma } from "@/lib/db";
-import { extractPairs } from "@/lib/ai/extract-pairs";
-
-const MIN_PAIRS_PER_ROUND = 4;
+import { extractPairs, MIN_PAIRS } from "@/lib/ai/extract-pairs";
 
 export async function getOrExtractPairs(resourceId: string) {
   const existing = await prisma.pair.findMany({ where: { resourceId } });
-  if (existing.length >= MIN_PAIRS_PER_ROUND) return existing;
+  if (existing.length >= MIN_PAIRS) return existing;
 
   const resource = await prisma.resource.findUniqueOrThrow({
     where: { id: resourceId },
