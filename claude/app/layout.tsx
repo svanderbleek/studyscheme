@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser, logout } from "@/app/actions/auth";
@@ -28,7 +29,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <header className="flex items-center justify-between border-b border-black/10 px-6 py-4 dark:border-white/15">
-          <span className="font-semibold">StudyScheme</span>
+          <div className="flex items-center gap-6">
+            <Link href="/" className="font-semibold">
+              StudyScheme
+            </Link>
+            {user && (
+              <Link href="/resources" className="text-sm underline underline-offset-2">
+                Resources
+              </Link>
+            )}
+          </div>
           {user && (
             <div className="flex items-center gap-3 text-sm">
               <span>{user.name}</span>
