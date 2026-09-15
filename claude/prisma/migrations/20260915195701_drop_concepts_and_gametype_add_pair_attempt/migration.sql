@@ -1,17 +1,13 @@
--- AlterEnum
-BEGIN;
-CREATE TYPE "GameType_new" AS ENUM ('PAIRS');
-ALTER TABLE "GameSession" ALTER COLUMN "gameType" TYPE "GameType_new" USING ("gameType"::text::"GameType_new");
-ALTER TYPE "GameType" RENAME TO "GameType_old";
-ALTER TYPE "GameType_new" RENAME TO "GameType";
-DROP TYPE "GameType_old";
-COMMIT;
-
 -- DropForeignKey
 ALTER TABLE "Concept" DROP CONSTRAINT "Concept_resourceId_fkey";
 
 -- DropForeignKey
 ALTER TABLE "Extension" DROP CONSTRAINT "Extension_conceptId_fkey";
+
+-- AlterTable
+ALTER TABLE "GameSession" DROP COLUMN "gameType",
+ADD COLUMN     "correctCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "incorrectCount" INTEGER NOT NULL DEFAULT 0;
 
 -- DropTable
 DROP TABLE "Concept";
@@ -19,12 +15,14 @@ DROP TABLE "Concept";
 -- DropTable
 DROP TABLE "Extension";
 
+-- DropEnum
+DROP TYPE "GameType";
+
 -- CreateTable
 CREATE TABLE "PairAttempt" (
     "id" TEXT NOT NULL,
     "gameSessionId" TEXT NOT NULL,
     "pairId" TEXT NOT NULL,
-    "correct" BOOLEAN NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PairAttempt_pkey" PRIMARY KEY ("id")
