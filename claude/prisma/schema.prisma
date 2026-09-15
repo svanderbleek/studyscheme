@@ -72,3 +72,11 @@ model PairAttempt {
   @@index([gameSessionId])
   @@index([pairId])
 }
+
+// Fixed-window counter backing the per-IP AI extraction rate limit
+// (lib/ai/rate-limit.ts). One row per distinct IP ever seen.
+model AiRateLimit {
+  ip          String   @id
+  windowStart DateTime
+  count       Int      @default(0)
+}

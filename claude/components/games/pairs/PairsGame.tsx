@@ -6,13 +6,8 @@ import { QuitButton } from "@/components/games/common/QuitButton";
 import type { BlockState } from "@/components/games/common/Block";
 import { PAIRS_ROUND_SIZE } from "@/lib/games/constants";
 import { shuffle } from "@/lib/games/shuffle";
+import type { PairData } from "@/lib/games/types";
 import { recordPairResult } from "@/app/actions/games";
-
-export interface PairData {
-  id: string;
-  sentenceA: string;
-  sentenceB: string;
-}
 
 interface LastResult {
   pairId: string;
@@ -27,6 +22,8 @@ interface State {
   matchedCount: number;
   correctCount: number;
   incorrectCount: number;
+  pairsById: Record<string, PairData>;
+  missedPairs: PairData[];
   lastResult: LastResult | null;
   status: "playing" | "gameover";
 }
@@ -34,6 +31,11 @@ interface State {
 type Action =
   | { type: "CLICK"; blockId: string }
   | { type: "SHUFFLE_INITIAL_ROUND"; pairs: PairData[] };
+
+type Carry = Pick<
+  State,
+  "correctCount" | "incorrectCount" | "pairsById" | "missedPairs"
+>;
 
 function buildRound(
   pool: PairData[],
@@ -54,22 +56,28 @@ function buildRound(
 function roundState(
   round: RoundBlock[],
   remainingPool: PairData[],
-  carry: { correctCount: number; incorrectCount: number },
+  carry: Carry,
 ): State {
   return {
+    ...carry,
     pool: remainingPool,
     roundBlocks: round,
     blockStates: Object.fromEntries(round.map((b) => [b.id, "idle"])),
     selectedBlockId: null,
     matchedCount: 0,
-    correctCount: carry.correctCount,
-    incorrectCount: carry.incorrectCount,
     lastResult: null,
     status: "playing",
   };
 }
 
+function addMissedPair(missedPairs: PairData[], pair: PairData): PairData[] {
+  if (missedPairs.some((p) => p.id === pair.id)) return missedPairs;
+  return [...missedPairs, pair];
+}
+
 function initState(initialPairs: PairData[]): State {
+  const pairsById = Object.fromEntries(initialPairs.map((p) => [p.id, p]));
+
   // Deterministic (unshuffled) first round so server and client render the
   // same markup — the real shuffle happens once on mount (SHUFFLE_INITIAL_ROUND).
   if (initialPairs.length < PAIRS_ROUND_SIZE) {
@@ -81,6 +89,8 @@ function initState(initialPairs: PairData[]): State {
       matchedCount: 0,
       correctCount: 0,
       incorrectCount: 0,
+      pairsById,
+      missedPairs: [],
       lastResult: null,
       status: "gameover",
     };
@@ -91,7 +101,12 @@ function initState(initialPairs: PairData[]): State {
     { id: `${pair.id}:A`, pairId: pair.id, text: pair.sentenceA },
     { id: `${pair.id}:B`, pairId: pair.id, text: pair.sentenceB },
   ]);
-  return roundState(round, remainingPool, { correctCount: 0, incorrectCount: 0 });
+  return roundState(round, remainingPool, {
+    correctCount: 0,
+    incorrectCount: 0,
+    pairsById,
+    missedPairs: [],
+  });
 }
 
 function reducer(state: State, action: Action): State {
@@ -167,7 +182,12 @@ function reducer(state: State, action: Action): State {
         };
       }
       return {
-        ...roundState(built.round, built.remainingPool, { correctCount, incorrectCount: state.incorrectCount }),
+        ...roundState(built.round, built.remainingPool, {
+          correctCount,
+          incorrectCount: state.incorrectCount,
+          pairsById: state.pairsById,
+          missedPairs: state.missedPairs,
+        }),
         lastResult,
       };
     }
@@ -191,6 +211,7 @@ function reducer(state: State, action: Action): State {
     },
     selectedBlockId: null,
     incorrectCount: state.incorrectCount + 1,
+    missedPairs: addMissedPair(state.missedPairs, state.pairsById[selectedBlock.pairId]),
     lastResult: { pairId: selectedBlock.pairId, correct: false },
   };
 }
@@ -220,12 +241,43 @@ export function PairsGame({
   }, [state.lastResult, gameSessionId]);
 
   if (state.status === "gameover") {
+    const totalAnswered = state.correctCount + state.incorrectCount;
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+      <div className="flex flex-1 flex-col items-center px-6 py-16 text-center">
         <p className="text-lg font-semibold">
           Game over — no more pairs left for another round.
         </p>
-        <QuitButton />
+        {totalAnswered > 0 && (
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Final score: {state.correctCount}/{totalAnswered} correct
+          </p>
+        )}
+        {state.missedPairs.length > 0 && (
+          <div className="mt-6 w-full max-w-2xl text-left">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              Pairs to review
+            </h2>
+            <ul className="mt-2 flex flex-col gap-2">
+              {state.missedPairs.map((pair) => (
+                <li
+                  key={pair.id}
+                  className="rounded border border-black/10 p-3 text-sm dark:border-white/15"
+                >
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                    {pair.resourceName}
+                  </p>
+                  <p className="mt-1">{pair.sentenceA}</p>
+                  <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                    {pair.sentenceB}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="mt-6">
+          <QuitButton />
+        </div>
       </div>
     );
   }

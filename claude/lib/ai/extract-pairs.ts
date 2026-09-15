@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { anthropic, MODEL } from "@/lib/ai/client";
 import { PAIRS_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { PairsToolInputSchema, repairPairs, type RawPair } from "@/lib/ai/schemas";
+import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 
 export const MIN_PAIRS = 2;
 
@@ -30,6 +31,8 @@ const EXTRACT_PAIRS_TOOL: Anthropic.Tool = {
 export class InsufficientContentError extends Error {}
 
 export async function extractPairs(content: string): Promise<RawPair[]> {
+  await checkAiRateLimit();
+
   const pairs = repairPairs(await requestPairs(content));
   if (pairs.length >= MIN_PAIRS) return pairs;
 
