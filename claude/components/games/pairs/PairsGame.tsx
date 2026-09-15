@@ -6,11 +6,17 @@ import { QuitButton } from "@/components/games/common/QuitButton";
 import type { BlockState } from "@/components/games/common/Block";
 import { PAIRS_ROUND_SIZE } from "@/lib/games/constants";
 import { shuffle } from "@/lib/games/shuffle";
+import { recordPairResult } from "@/app/actions/games";
 
 export interface PairData {
   id: string;
   sentenceA: string;
   sentenceB: string;
+}
+
+interface LastResult {
+  pairId: string;
+  correct: boolean;
 }
 
 interface State {
@@ -19,6 +25,9 @@ interface State {
   blockStates: Record<string, BlockState>;
   selectedBlockId: string | null;
   matchedCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  lastResult: LastResult | null;
   status: "playing" | "gameover";
 }
 
@@ -42,13 +51,20 @@ function buildRound(
   return { round, remainingPool };
 }
 
-function roundState(round: RoundBlock[], remainingPool: PairData[]): State {
+function roundState(
+  round: RoundBlock[],
+  remainingPool: PairData[],
+  carry: { correctCount: number; incorrectCount: number },
+): State {
   return {
     pool: remainingPool,
     roundBlocks: round,
     blockStates: Object.fromEntries(round.map((b) => [b.id, "idle"])),
     selectedBlockId: null,
     matchedCount: 0,
+    correctCount: carry.correctCount,
+    incorrectCount: carry.incorrectCount,
+    lastResult: null,
     status: "playing",
   };
 }
@@ -63,6 +79,9 @@ function initState(initialPairs: PairData[]): State {
       blockStates: {},
       selectedBlockId: null,
       matchedCount: 0,
+      correctCount: 0,
+      incorrectCount: 0,
+      lastResult: null,
       status: "gameover",
     };
   }
@@ -72,14 +91,14 @@ function initState(initialPairs: PairData[]): State {
     { id: `${pair.id}:A`, pairId: pair.id, text: pair.sentenceA },
     { id: `${pair.id}:B`, pairId: pair.id, text: pair.sentenceB },
   ]);
-  return roundState(round, remainingPool);
+  return roundState(round, remainingPool, { correctCount: 0, incorrectCount: 0 });
 }
 
 function reducer(state: State, action: Action): State {
   if (action.type === "SHUFFLE_INITIAL_ROUND") {
     if (state.selectedBlockId !== null || state.matchedCount > 0) return state;
     const built = buildRound(action.pairs);
-    return built ? roundState(built.round, built.remainingPool) : state;
+    return built ? roundState(built.round, built.remainingPool, state) : state;
   }
 
   if (state.status !== "playing") return state;
@@ -106,6 +125,7 @@ function reducer(state: State, action: Action): State {
       ...state,
       blockStates: { ...blockStates, [blockId]: "selected" },
       selectedBlockId: blockId,
+      lastResult: null,
     };
   }
 
@@ -114,6 +134,7 @@ function reducer(state: State, action: Action): State {
       ...state,
       blockStates: { ...blockStates, [blockId]: "idle" },
       selectedBlockId: null,
+      lastResult: null,
     };
   }
 
@@ -124,6 +145,8 @@ function reducer(state: State, action: Action): State {
 
   if (selectedBlock.pairId === clickedBlock.pairId) {
     const matchedCount = state.matchedCount + 1;
+    const correctCount = state.correctCount + 1;
+    const lastResult: LastResult = { pairId: selectedBlock.pairId, correct: true };
     const nextBlockStates: Record<string, BlockState> = {
       ...blockStates,
       [selectedBlock.id]: "success",
@@ -132,12 +155,31 @@ function reducer(state: State, action: Action): State {
 
     if (matchedCount === PAIRS_ROUND_SIZE) {
       const built = buildRound(state.pool);
-      return built
-        ? roundState(built.round, built.remainingPool)
-        : { ...state, blockStates: nextBlockStates, selectedBlockId: null, matchedCount, status: "gameover" };
+      if (!built) {
+        return {
+          ...state,
+          blockStates: nextBlockStates,
+          selectedBlockId: null,
+          matchedCount,
+          correctCount,
+          lastResult,
+          status: "gameover",
+        };
+      }
+      return {
+        ...roundState(built.round, built.remainingPool, { correctCount, incorrectCount: state.incorrectCount }),
+        lastResult,
+      };
     }
 
-    return { ...state, blockStates: nextBlockStates, selectedBlockId: null, matchedCount };
+    return {
+      ...state,
+      blockStates: nextBlockStates,
+      selectedBlockId: null,
+      matchedCount,
+      correctCount,
+      lastResult,
+    };
   }
 
   return {
@@ -148,10 +190,18 @@ function reducer(state: State, action: Action): State {
       [clickedBlock.id]: "failure",
     },
     selectedBlockId: null,
+    incorrectCount: state.incorrectCount + 1,
+    lastResult: { pairId: selectedBlock.pairId, correct: false },
   };
 }
 
-export function PairsGame({ initialPairs }: { initialPairs: PairData[] }) {
+export function PairsGame({
+  initialPairs,
+  gameSessionId,
+}: {
+  initialPairs: PairData[];
+  gameSessionId: string;
+}) {
   const [state, dispatch] = useReducer(reducer, initialPairs, initState);
 
   useEffect(() => {
@@ -159,6 +209,15 @@ export function PairsGame({ initialPairs }: { initialPairs: PairData[] }) {
     // Only ever shuffle the round we mounted with.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!state.lastResult) return;
+    void recordPairResult(
+      gameSessionId,
+      state.lastResult.pairId,
+      state.lastResult.correct,
+    );
+  }, [state.lastResult, gameSessionId]);
 
   if (state.status === "gameover") {
     return (
@@ -171,11 +230,24 @@ export function PairsGame({ initialPairs }: { initialPairs: PairData[] }) {
     );
   }
 
+  const totalAnswered = state.correctCount + state.incorrectCount;
+  const percentCorrect =
+    totalAnswered > 0
+      ? Math.round((state.correctCount / totalAnswered) * 100)
+      : null;
+
   return (
     <div className="flex flex-1 flex-col items-center px-6 py-12">
       <div className="mb-4 flex w-full max-w-2xl items-center justify-between">
         <h1 className="text-xl font-semibold">Pairs</h1>
-        <QuitButton />
+        <div className="flex items-center gap-4">
+          {percentCorrect !== null && (
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              {percentCorrect}% correct ({state.correctCount}/{totalAnswered})
+            </span>
+          )}
+          <QuitButton />
+        </div>
       </div>
       <MatchingBoard
         blocks={state.roundBlocks}

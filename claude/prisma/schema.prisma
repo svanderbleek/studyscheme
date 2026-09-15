@@ -43,33 +43,30 @@ model Pair {
   @@index([resourceId])
 }
 
-enum GameType {
-  PAIRS
-}
-
 model GameSession {
-  id           String        @id @default(cuid())
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gameType     GameType
-  startedAt    DateTime      @default(now())
-  endedAt      DateTime?
-  roundsPlayed Int           @default(0)
-  quit         Boolean       @default(false)
-  attempts     PairAttempt[]
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  correctCount   Int           @default(0)
+  incorrectCount Int           @default(0)
+  startedAt      DateTime      @default(now())
+  endedAt        DateTime?
+  roundsPlayed   Int           @default(0)
+  quit           Boolean       @default(false)
+  attempts       PairAttempt[]
 
   @@index([userId])
 }
 
-// Schema only for now — records whether a Pair was answered correctly in a
-// session, so a future phase can suggest resources to restudy from misses.
+// Records a Pair that was answered incorrectly in a session, so a future
+// phase can suggest resources to restudy from misses. Only misses are
+// recorded — correct answers just increment GameSession.correctCount.
 model PairAttempt {
   id            String      @id @default(cuid())
   gameSessionId String
   gameSession   GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
   pairId        String
   pair          Pair        @relation(fields: [pairId], references: [id], onDelete: Cascade)
-  correct       Boolean
   createdAt     DateTime    @default(now())
 
   @@index([gameSessionId])

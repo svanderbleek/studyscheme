@@ -4,9 +4,9 @@ import { QuitButton } from "@/components/games/common/QuitButton";
 import { PAIRS_ROUND_SIZE } from "@/lib/games/constants";
 
 export default async function PlayPairsPage() {
-  const pairs = await startPairsGame();
+  const { gameSessionId, pairs } = await startPairsGame();
 
-  if (pairs.length < PAIRS_ROUND_SIZE) {
+  if (!gameSessionId || pairs.length < PAIRS_ROUND_SIZE) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
         <p className="max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
@@ -18,5 +18,5 @@ export default async function PlayPairsPage() {
     );
   }
 
-  return <PairsGame initialPairs={pairs} />;
+  return <PairsGame initialPairs={pairs} gameSessionId={gameSessionId} />;
 }
