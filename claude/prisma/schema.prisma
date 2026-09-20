@@ -49,10 +49,6 @@ model GameSession {
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   correctCount   Int           @default(0)
   incorrectCount Int           @default(0)
-  startedAt      DateTime      @default(now())
-  endedAt        DateTime?
-  roundsPlayed   Int           @default(0)
-  quit           Boolean       @default(false)
   attempts       PairAttempt[]
 
   @@index([userId])
