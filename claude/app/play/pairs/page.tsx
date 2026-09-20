@@ -11,7 +11,7 @@ export default async function PlayPairsPage() {
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
         <p className="max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
           {rateLimited
-            ? "You've hit the AI extraction limit for now. Try again in a bit."
+            ? "This network has reached its AI extraction limit."
             : `You need at least ${PAIRS_ROUND_SIZE} extracted pairs across your resources to play. Add more resources or content, then try again.`}
         </p>
         <QuitButton />

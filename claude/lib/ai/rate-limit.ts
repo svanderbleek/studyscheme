@@ -1,8 +1,7 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 
-const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_PER_WINDOW = 5; // AI extraction events per IP per window
+const MAX_PER_IP = 5; // AI extraction events per IP, ever
 
 export class RateLimitExceededError extends Error {}
 
@@ -15,26 +14,17 @@ export async function checkAiRateLimit(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
 
   const ip = await getClientIp();
-  const now = new Date();
   const record = await prisma.aiRateLimit.findUnique({ where: { ip } });
 
-  if (!record || now.getTime() - record.windowStart.getTime() > WINDOW_MS) {
-    await prisma.aiRateLimit.upsert({
-      where: { ip },
-      create: { ip, windowStart: now, count: 1 },
-      update: { windowStart: now, count: 1 },
-    });
-    return;
-  }
-
-  if (record.count >= MAX_PER_WINDOW) {
+  if (record && record.count >= MAX_PER_IP) {
     throw new RateLimitExceededError(
-      "AI extraction rate limit reached for this network. Try again later.",
+      "AI extraction rate limit reached for this network.",
     );
   }
 
-  await prisma.aiRateLimit.update({
+  await prisma.aiRateLimit.upsert({
     where: { ip },
-    data: { count: { increment: 1 } },
+    create: { ip, count: 1 },
+    update: { count: { increment: 1 } },
   });
 }
