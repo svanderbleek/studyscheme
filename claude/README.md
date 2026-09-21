@@ -29,8 +29,27 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+StudyScheme is deployed on Vercel: **https://claude-eight-mu.vercel.app** (also aliased at `claude-studyscheme.vercel.app`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Hosting**: Vercel project `studyscheme/claude`.
+- **Database**: Neon Postgres, provisioned via the Vercel Marketplace integration (`vercel integration add neon`). This auto-manages `DATABASE_URL` (pooled, used by the app) and `DATABASE_URL_UNPOOLED` (direct, used for migrations) across the Production/Preview/Development environments — no manual DB env var wiring needed.
+- **Other required env vars** (set per-environment via `vercel env add`, not committed): `SESSION_SECRET` (32+ char random string), `ANTHROPIC_API_KEY`.
+
+### Redeploying
+
+```bash
+npx vercel deploy         # preview deployment
+npx vercel deploy --prod  # production deployment
+```
+
+### Running a new migration against production
+
+Prisma Migrate needs the **unpooled** connection for DDL — the pooled `DATABASE_URL` can cause issues with advisory locks:
+
+```bash
+npx vercel env pull /tmp/prod.env --environment=production --yes
+DATABASE_URL=$(grep '^DATABASE_URL_UNPOOLED=' /tmp/prod.env | cut -d'=' -f2- | tr -d '"') npx prisma migrate deploy
+rm /tmp/prod.env
+```

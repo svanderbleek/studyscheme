@@ -37,6 +37,14 @@ yarn-error.log*
 # vercel
 .vercel
 
+# agent tooling scaffolding (regenerable, not app code)
+.agents
+.claude
+skills-lock.json
+
+# editor swap files
+*.swp
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
