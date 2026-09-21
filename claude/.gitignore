@@ -41,6 +41,7 @@ yarn-error.log*
 .agents
 .claude
 skills-lock.json
+.resume
 
 # editor swap files
 *.swp
